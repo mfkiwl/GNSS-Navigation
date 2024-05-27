@@ -1,0 +1,25 @@
+% program   : RTKLIB ver.demo5 gdsc_2022
+% inp file  : supplemental\gnss_log.obs
+% inp file  : ..\slac2000.21o
+% inp file  : ..\BRDM00DLR_S_20212000000_01D_MN.rnx
+% obs start : 2021/07/19 20:49:39.0 GPST (week2167 161379.0s)
+% obs end   : 2021/07/19 21:21:16.0 GPST (week2167 163276.0s)
+% pos mode  : Kinematic
+% freqs     : L1+L2/E5b+L5
+% solution  : Combined-No Phase Reset
+% elev mask : 5.0 deg
+% dynamics  : on
+% tidecorr  : off
+% ionos opt : Broadcast
+% tropo opt : Saastamoinen
+% ephemeris : Broadcast
+% navi sys  : GPS GLONASS Galileo
+% amb res   : OFF
+% amb glo   : OFF
+% val thres : 3.0
+% antenna1  :                       ( 0.0000  0.0000  0.0000)
+% antenna2  :                       ( 0.0000  0.0000  0.0000)
+% ref pos   : 37.416519040-122.204268280   63.7780
+%
+% (lat/lon/height=WGS84/ellipsoidal,Q=1:fix,2:float,3:sbas,4:dgps,5:single,6:ppp,ns=# of satellites)
+%  GPST          latitude(deg) longitude(deg)  height(m)   Q  ns   sdn(m)   sde(m)   sdu(m)  sdne(m)  sdeu(m)  sdun(m) age(s)  ratio
