@@ -133,7 +133,7 @@ def main1():
 
 
 def main():
-    path = '2020-06-25-00-34-us-ca-mtv-sb-101/pixel4xl'
+    path = '2021-07-19-20-49-us-ca-mtv-a/pixel5'
     gnss = pd.read_csv('%s/device_gnss.csv' % path, dtype={'SignalType': str})
     gt = pd.read_csv('%s/ground_truth.csv' % path, dtype={'SignalType': str})
     rtk = pd.read_csv('GSDC_2023/data/locations_train_05_27.csv', dtype={'SignalType': str})
@@ -160,6 +160,7 @@ def main():
     cov_v = np.full([nepoch, 3, 3], np.nan) # For saving velocity covariance  
     score_wls = []
     score_bl = [] 
+    score_rtk = []
 
     for i, (t_utc, df) in enumerate(tqdm(gnss.groupby('utcTimeMillis'), total=nepoch)):
         if i ==0 : continue  #First position is not in ground truth in some phone
@@ -222,7 +223,7 @@ def main():
                 v_wls[i, :] = opt.x[:3]
                 v0 = opt.x
         #RTK
-        #llh_rtk = rtk_train[['LatitudeDegrees', 'LongitudeDegrees', 'AltitudeMeters']].to_numpy()[i-1]
+        llh_rtk = rtk_train[['LatitudeDegrees', 'LongitudeDegrees', 'AltitudeMeters']].to_numpy()[i-1]
         #x_rtk = np.array(pm.geodetic2ecef(llh_rtk[0], llh_rtk[1], llh_rtk[2])).T
         #x_wls[i,:] = x_rtk
         # Baseline
@@ -234,7 +235,7 @@ def main():
         llh_gt = gt_i[['LatitudeDegrees', 'LongitudeDegrees']].to_numpy()[0]
         score_wls.append(vincenty_distance(llh_wls, llh_gt))
         score_bl.append(vincenty_distance(llh_bl, llh_gt))
-        #score_rtk = calc_score(llh_gt, llh_rtk)
+        score_rtk.append(vincenty_distance(llh_gt, llh_rtk))
 
     #Remove 1st position to compare to ground truth
     x_wls = x_wls[1:,:]
@@ -259,9 +260,11 @@ def main():
         score_kf_i = calc_score(llh_gt[i], llh_kf[i])
         score_kf.append(score_kf_i)
     score_kf = np.mean([np.quantile(score_kf, 0.50), np.quantile(score_kf, 0.95)])
+    score_all_rtk = np.mean([np.quantile(score_rtk, 0.50), np.quantile(score_rtk, 0.95)])
 
     print("KF score: ", score_kf)
     print("Baseline score: ", score_all_bl)
     print("WLS score: ", score_all_wls)
+    print("RTK score: ", score_all_rtk)
 if __name__ == "__main__":
     main()
