@@ -85,6 +85,7 @@ def prr_residuals(v, vsat, prr, x, xsat, W):
     """
     Args:
         v : current velocity in ECEF (m/s)
+        v[3] : clock bias drift between satellite and receiver (m/s)
         vsat : satellite velocity in ECEF (m/s)
         prr : pseudorange rate (m/s)
         x : current position in ECEF (m)
@@ -94,18 +95,35 @@ def prr_residuals(v, vsat, prr, x, xsat, W):
         residuals*W : pseudorange rate residuals
     """
     u, rng = los_vector(x[:3], xsat)
-    rate = np.sum((vsat-v[:3])*u, axis=1) \
-          + OMGE / CLIGHT * (vsat[:, 1] * x[0] + xsat[:, 1] * v[0]
-                           - vsat[:, 0] * x[1] - xsat[:, 0] * v[1])
+    tau = rng / CLIGHT
+
+    cosO = np.cos(OMGE * tau)
+    sinO = np.sin(OMGE * tau)
+    v_sat = np.empty_like(vsat)
+    v_sat[:, 0] =  cosO * vsat[:, 0] + sinO * vsat[:, 1]
+    v_sat[:, 1] = -sinO * vsat[:, 0] + cosO * vsat[:, 1]
+    v_sat[:, 2] = vsat[:, 2]
+
+    x_sat = np.empty_like(xsat)
+    x_sat[:, 0] =  cosO * xsat[:, 0] + sinO * xsat[:, 1]
+    x_sat[:, 1] = -sinO * xsat[:, 0] + cosO * xsat[:, 1]
+    x_sat[:, 2] = xsat[:, 2]
+
+    u, rng = los_vector(x[:3], x_sat)
+
+#    rate = np.sum((vsat-v[:3])*u, axis=1) \
+#          + OMGE / CLIGHT * (vsat[:, 1] * x[0] + xsat[:, 1] * v[0]
+#                           - vsat[:, 0] * x[1] - xsat[:, 0] * v[1])
+    
+    rate = np.sum((v_sat-v[:3])*u, axis=1)
 
     residuals = rate - (prr - v[3])
-
     return residuals @ W
 
 #Objective function for WLS
 def f_wls(x_rcv,x_sat,pr_obs,w):
     """
-    Compute error for guess y
+    Compute error for guess x_rcv
 
     x_rcv (x1, x2, x3, b):
       x_rcv: receiver position at receiving time
@@ -122,5 +140,6 @@ def f_wls(x_rcv,x_sat,pr_obs,w):
     x[:, 0] =  cosO * x_sat[:, 0] + sinO * x_sat[:, 1]
     x[:, 1] = -sinO * x_sat[:, 0] + cosO * x_sat[:, 1]
     x[:, 2] = x_sat[:, 2]
+
 
     return w @ (np.sqrt(np.sum((x - x_rcv[:3])**2, axis=1)) - r)
