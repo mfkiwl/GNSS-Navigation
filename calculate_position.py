@@ -10,6 +10,7 @@ import scipy.optimize
 import pymap3d as pm
 import glob as gl
 import pymap3d.vincenty as pmv
+import matplotlib.pyplot as plt
 
 # Constants
 CLIGHT = 299_792_458   # speed of light (m/s)
@@ -30,106 +31,9 @@ def satellite_selection(df):
     idx &= df['CarrierErrorHz'] < 2.0e6  # carrier frequency error (Hz)
     idx &= df['Cn0DbHz'] > 18.0  # C/N0 (dB-Hz)
     idx &= df['MultipathIndicator'] == 0 # Multipath flag
+    idx &= df['ReceivedSvTimeUncertaintyNanos'] < 500
 
     return df[idx]
-
-
-def main1():
-    path = '2020-06-25-00-34-us-ca-mtv-sb-101/pixel4xl'
-    gnss_all = pd.read_csv('%s/device_gnss.csv' % path, dtype={'SignalType': str})
-    gt = pd.read_csv('%s/ground_truth.csv' % path, dtype={'SignalType': str})
-
-    #For app use this
-    #current_time_seconds = time()
-
-    # Convert to milliseconds
-    #utcTimeMillis = int(current_time_seconds * 1000)
-    start_time = time()
-    gnss = gnss_all[gnss_all['utcTimeMillis'] == 1593045255447]
-    # Add standard Frequency column
-    frequency_median = gnss.groupby('SignalType')['CarrierFrequencyHz'].median()
-    gnss = gnss.merge(frequency_median, how='left', on='SignalType', suffixes=('', 'Ref'))
-    carrier_error = abs(gnss['CarrierFrequencyHz'] - gnss['CarrierFrequencyHzRef'])
-    gnss['CarrierErrorHz'] = carrier_error
-    gnss = satellite_selection(gnss)
-
-
-    x0 = np.zeros(4)  # [x,y,z,tGPSL1]
-    v0 = np.zeros(4)  # [vx,vy,vz,dtGPSL1]
-    x_wls = np.full(3, np.nan)  # For saving position
-    v_wls = np.full(3, np.nan)  # For saving velocity
-    cov_x = np.full([3, 3], np.nan) # For saving position covariance
-    cov_v = np.full([3, 3], np.nan) # For saving velocity covariance
-    # Corrected pseudorange/pseudorange rate
-    pr = (gnss['RawPseudorangeMeters'] + gnss['SvClockBiasMeters'] - gnss['IsrbMeters'] -
-            gnss['IonosphericDelayMeters'] - gnss['TroposphericDelayMeters']).to_numpy()
-    prr = (gnss['PseudorangeRateMetersPerSecond'] +
-            gnss['SvClockDriftMetersPerSecond']).to_numpy()
-
-    # Satellite position/velocity
-    xsat_pr = gnss[['SvPositionXEcefMeters', 'SvPositionYEcefMeters',
-                        'SvPositionZEcefMeters']].to_numpy()
-    xsat_prr = gnss[['SvPositionXEcefMeters', 'SvPositionYEcefMeters',
-                        'SvPositionZEcefMeters']].to_numpy()
-    vsat = gnss[['SvVelocityXEcefMetersPerSecond', 'SvVelocityYEcefMetersPerSecond',
-                    'SvVelocityZEcefMetersPerSecond']].to_numpy()
-
-    # Weight matrix for peseudorange/pseudorange rate
-    Wx = np.diag(1 / gnss['RawPseudorangeUncertaintyMeters'].to_numpy())
-    Wv = np.diag(1 / gnss['PseudorangeRateUncertaintyMetersPerSecond'].to_numpy())
-
-    # Robust WLS requires accurate initial values for convergence,
-    # so perform normal WLS for the first time
-    if len(gnss) >= 4:
-        # Normal WLS
-        if np.all(x0 == 0):
-            opt = scipy.optimize.least_squares(
-                f_wls, x0, jac_pr_residuals, args=(xsat_pr, pr, Wx))
-            x0 = opt.x 
-        # Robust WLS for position estimation
-        opt = scipy.optimize.least_squares(
-                f_wls, x0,  jac_pr_residuals, args=(xsat_pr, pr, Wx), loss='soft_l1')
-        if opt.status < 1 or opt.status == 2:
-            print(f'position lsq status = {opt.status}')
-        else:
-            # Covariance estimation
-            cov = np.linalg.inv(opt.jac.T @ Wx @ opt.jac)
-            cov_x[:, :] = cov[:3, :3]
-            x_wls[:] = opt.x[:3]
-            x0 = opt.x
-
-    # Velocity estimation
-    if len(gnss) >= 4:
-        if np.all(v0 == 0): # Normal WLS
-            opt = scipy.optimize.least_squares(
-                prr_residuals, v0, jac_prr_residuals, args=(vsat, prr, x0, xsat_prr, Wv))
-            v0 = opt.x
-        # Robust WLS for velocity estimation
-        opt = scipy.optimize.least_squares(
-            prr_residuals, v0, jac_prr_residuals, args=(vsat, prr, x0, xsat_prr, Wv), loss='soft_l1')
-        if opt.status < 1:
-            print(f'velocity lsq status = {opt.status}')
-        else:
-            # Covariance estimation
-            cov = np.linalg.inv(opt.jac.T @ Wv @ opt.jac)
-            cov_v[:, :] = cov[:3, :3]
-            v_wls[:] = opt.x[:3]
-            v0 = opt.x
-
-    # Baseline
-    x_bl = gnss.groupby('TimeNanos')[
-        ['WlsPositionXEcefMeters', 'WlsPositionYEcefMeters', 'WlsPositionZEcefMeters']].mean().to_numpy()
-    llh_bl = np.array(pm.ecef2geodetic(x_bl[:, 0], x_bl[:, 1], x_bl[:, 2])).T
-    llh_wls = np.array(pm.ecef2geodetic(x_wls[0], x_wls[1], x_wls[2])).T
-    gt = gt[gt['UnixTimeMillis'] == 1593045255447]
-    print(gt)
-    llh_gt = gt[['LatitudeDegrees', 'LongitudeDegrees']].to_numpy()[0]
-    print(llh_gt)
-    exec_time = time() - start_time
-    score_bl = calc_score(llh_bl, llh_gt)
-    print("My score: ", calc_score(llh_gt, llh_wls))
-    print("Baseline score: ", calc_score(llh_gt, llh_bl))
-    print("Execute time: ", exec_time*1000, "ms")
 
 
 def main():
@@ -259,12 +163,27 @@ def main():
     for i in range(len(llh_gt)):
         score_kf_i = calc_score(llh_gt[i], llh_kf[i])
         score_kf.append(score_kf_i)
-    score_kf = np.mean([np.quantile(score_kf, 0.50), np.quantile(score_kf, 0.95)])
+    score_all_kf = np.mean([np.quantile(score_kf, 0.50), np.quantile(score_kf, 0.95)])
     score_all_rtk = np.mean([np.quantile(score_rtk, 0.50), np.quantile(score_rtk, 0.95)])
 
-    print("KF score: ", score_kf)
+    print("KF score: ", score_all_kf)
     print("Baseline score: ", score_all_bl)
     print("WLS score: ", score_all_wls)
     print("RTK score: ", score_all_rtk)
+
+
+    # Plot distance error
+    plt.figure()
+    plt.title('Distance error')
+    plt.ylabel('Distance error [m]')
+    plt.plot(score_bl, label=f'Baseline, Score: {score_all_bl:.4f} m')
+    plt.plot(score_wls, label=f'Robust WLS, Score: {score_all_wls:.4f} m')
+    plt.plot(score_kf, label=f'Robust WLS + KF, Score: {score_all_kf:.4f} m')
+    plt.plot(score_rtk, label=f'RTK, Score: {score_all_rtk:.4f} m')
+    plt.legend()
+    plt.grid()
+    plt.ylim([0, 30])
+    plt.show()
+
 if __name__ == "__main__":
     main()
