@@ -1,7 +1,7 @@
 from outlier import exclude_interpolate_outlier
 from calculate_score import calc_score, vincenty_distance
 from calculate_wls import *
-from kalman_filter import Kalman_smoothing
+from kalman_filter import kalman_smoothing, kalman_smoothing_origin
 from tqdm.auto import tqdm
 from time import time 
 import numpy as np
@@ -56,6 +56,7 @@ def main():
     gnss['CarrierErrorHz'] = carrier_error
     utcTimeMillis = gnss['utcTimeMillis'].unique()
     nepoch = len(utcTimeMillis)
+    gt_len = len(gt)
     x0 = np.zeros(4)  # [x,y,z,tGPSL1]
     v0 = np.zeros(4)  # [vx,vy,vz,dtGPSL1]
     x_wls = np.full([nepoch, 3], np.nan)  # For saving position
@@ -67,7 +68,7 @@ def main():
     score_rtk = []
 
     for i, (t_utc, df) in enumerate(tqdm(gnss.groupby('utcTimeMillis'), total=nepoch)):
-        if i ==0 : continue  #First position is not in ground truth in some phone
+        if (i ==0) and (nepoch != gt_len) : continue  #First position is not in ground truth in some phone
         df_pr = satellite_selection(df)
         df_prr = satellite_selection(df)
 
@@ -127,7 +128,10 @@ def main():
                 v_wls[i, :] = opt.x[:3]
                 v0 = opt.x
         #RTK
-        llh_rtk = rtk_train[['LatitudeDegrees', 'LongitudeDegrees', 'AltitudeMeters']].to_numpy()[i-1]
+        if nepoch == gt_len :
+            llh_rtk = rtk_train[['LatitudeDegrees', 'LongitudeDegrees', 'AltitudeMeters']].to_numpy()[i]
+        else: 
+            llh_rtk = rtk_train[['LatitudeDegrees', 'LongitudeDegrees', 'AltitudeMeters']].to_numpy()[i-1]
         #x_rtk = np.array(pm.geodetic2ecef(llh_rtk[0], llh_rtk[1], llh_rtk[2])).T
         #x_wls[i,:] = x_rtk
         # Baseline
@@ -142,16 +146,17 @@ def main():
         score_rtk.append(vincenty_distance(llh_gt, llh_rtk))
 
     #Remove 1st position to compare to ground truth
-    x_wls = x_wls[1:,:]
-    v_wls = v_wls[1:,:]
-    cov_x = cov_x[1:,:,:]
-    cov_v = cov_v[1:,:,:]
+    if nepoch != gt_len :
+        x_wls = x_wls[1:,:]
+        v_wls = v_wls[1:,:]
+        cov_x = cov_x[1:,:,:]
+        cov_v = cov_v[1:,:,:]
 
     # Exclude velocity outliers
     x_wls, v_wls, cov_x, cov_v = exclude_interpolate_outlier(x_wls, v_wls, cov_x, cov_v)
 
     #Kalman filter all epoch
-    x_kf, _, _ = Kalman_smoothing(x_wls, v_wls, cov_x, cov_v)
+    x_kf, _ = kalman_smoothing(x_wls, v_wls, cov_x, cov_v)
     llh_kf = np.array(pm.ecef2geodetic(x_kf[:,0], x_kf[:,1], x_kf[:,2])).T
     llh_wls = np.array(pm.ecef2geodetic(x_wls[:,0], x_wls[:,1], x_wls[:,2])).T
     llh_gt = gt[['LatitudeDegrees', 'LongitudeDegrees']].to_numpy()
@@ -161,7 +166,7 @@ def main():
     #score_all_bl = calc_score(llh_bl, llh_gt)
     score_kf = []
     for i in range(len(llh_gt)):
-        score_kf_i = calc_score(llh_gt[i], llh_kf[i])
+        score_kf_i = vincenty_distance(llh_gt[i], llh_kf[i])
         score_kf.append(score_kf_i)
     score_all_kf = np.mean([np.quantile(score_kf, 0.50), np.quantile(score_kf, 0.95)])
     score_all_rtk = np.mean([np.quantile(score_rtk, 0.50), np.quantile(score_rtk, 0.95)])

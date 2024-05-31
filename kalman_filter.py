@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.spatial import distance
 
-def Kalman_filter(zs, us, cov_zs, cov_us):
+def kalman_filter(zs, us, cov_zs, cov_us):
     # Parameters
     sigma_mahalanobis = 30.0  # Mahalanobis distance for rejecting innovation
 
@@ -17,12 +17,13 @@ def Kalman_filter(zs, us, cov_zs, cov_us):
     x_kf = np.zeros([n, dim_x])
     P_kf = np.zeros([n, dim_x, dim_x])
 
+    #Initial for first epoch
+    x_kf[0] = x.T
+    P_kf[0] = P
+
     # Kalman filtering
     for i, (u, z) in enumerate(zip(us, zs)):
-        # First step
         if i == 0:
-            x_kf[i] = x.T
-            P_kf[i] = P
             continue
 
         # Prediction step
@@ -52,19 +53,27 @@ def Kalman_filter(zs, us, cov_zs, cov_us):
 
 
 # Forward + backward Kalman filter and smoothing
-def Kalman_smoothing(x_wls, v_wls, cov_x, cov_v):
+def kalman_smoothing(x_wls, v_wls, cov_x, cov_v):
+
+    #Get the velocity between 2 epoch (median)
+    v = np.vstack([np.zeros([1, 3]), (v_wls[:-1] + v_wls[1:])/2])
+    x_f, P_f = kalman_filter(x_wls, v, cov_x, cov_v)    
+    return x_f, P_f
+
+
+def kalman_smoothing_origin(x_wls, v_wls, cov_x, cov_v):
     n, _ = x_wls.shape
 
     # Forward
     v = np.vstack([np.zeros([1, 3]), (v_wls[:-1] + v_wls[1:])/2])
-    x_f, P_f = Kalman_filter(x_wls, v, cov_x, cov_v)
+    x_f, P_f = kalman_filter(x_wls, v, cov_x, cov_v)    
 
     # Backward
     v = -np.flipud(v_wls)
     v = np.vstack([np.zeros([1, 3]), (v[:-1] + v[1:])/2])
     cov_xf = np.flip(cov_x, axis=0)
     cov_vf = np.flip(cov_v, axis=0)
-    x_b, P_b = Kalman_filter(np.flipud(x_wls), v, cov_xf, cov_vf)
+    x_b, P_b = kalman_filter(np.flipud(x_wls), v, cov_xf, cov_vf)
 
     # Smoothing
     x_fb = np.zeros_like(x_f)
@@ -76,4 +85,4 @@ def Kalman_smoothing(x_wls, v_wls, cov_x, cov_v):
         P_fb[f] = np.linalg.inv(P_fi + P_bi)
         x_fb[f] = P_fb[f] @ (P_fi @ x_f[f] + P_bi @ x_b[b])
 
-    return x_fb, x_f, np.flipud(x_b)
+    return x_f, x_f, np.flipud(x_b)
