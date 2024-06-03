@@ -1,18 +1,18 @@
 import numpy as np
 from scipy.spatial import distance
 
-def kalman_filter(zs, us, cov_zs, cov_us):
+def kalman_filter(x_wls, v_wls, cov_x, cov_v):
     # Parameters
     sigma_mahalanobis = 30.0  # Mahalanobis distance for rejecting innovation
 
-    n, dim_x = zs.shape
+    n, dim_x = x_wls.shape
     F = np.eye(3)  # Transition matrix
     H = np.eye(3)  # Measurement function
 
     # Initial state and covariance
-    x = zs[0, :3].T  # State
+    x = x_wls[0, :3].T  # State
     P = 5.0**2 * np.eye(3)  # State covariance
-    I = np.eye(dim_x)
+    I = np.eye(3)
 
     x_kf = np.zeros([n, dim_x])
     P_kf = np.zeros([n, dim_x, dim_x])
@@ -22,12 +22,12 @@ def kalman_filter(zs, us, cov_zs, cov_us):
     P_kf[0] = P
 
     # Kalman filtering
-    for i, (u, z) in enumerate(zip(us, zs)):
+    for i, (u, z) in enumerate(zip(v_wls, x_wls)):
         if i == 0:
             continue
 
         # Prediction step
-        Q = cov_us[i] # Estimated WLS velocity covariance
+        Q = cov_v[i] # Estimated WLS velocity covariance
         x = F @ x + u.T
         P = (F @ P) @ F.T + Q
 
@@ -36,7 +36,7 @@ def kalman_filter(zs, us, cov_zs, cov_us):
 
         # Update step
         if d < sigma_mahalanobis:
-            R = cov_zs[i] # Estimated WLS position covariance
+            R = cov_x[i] # Estimated WLS position covariance
             y = z.T - H @ x
             S = (H @ P) @ H.T + R
             K = (P @ H.T) @ np.linalg.inv(S)
@@ -52,7 +52,7 @@ def kalman_filter(zs, us, cov_zs, cov_us):
     return x_kf, P_kf
 
 
-# Forward + backward Kalman filter and smoothing
+
 def kalman_smoothing(x_wls, v_wls, cov_x, cov_v):
 
     #Get the velocity between 2 epoch (median)

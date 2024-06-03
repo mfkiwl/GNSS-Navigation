@@ -16,9 +16,9 @@ datapath = '../data/train' # relative to python script
 #           'samsungs22ultra', 'samsunga325g', 'samsunga32', 'samsung21ultra']
 
 # just phones in test set
-PHONES = ['pixel4', 'pixel4xl', 'pixel5', 'pixel6pro', 'pixel7pro',
+PHONES = ['pixel4', 'pixel4xl', 'pixel5', 'pixel6pro', 'pixel7pro', 'pixel5a',
           'mi8', 'xiaomimi8',
-          'sm-g988b', 'sm-s908b', 'sm-a325f', 'sm-a505u', 
+          'sm-g988b', 'sm-s908b', 'sm-a325f', 'sm-a505u', 'sm-g955f',
           'samsunga325g', 'samsunga32']
 GPS_TO_UTC = 315964782  # second
 

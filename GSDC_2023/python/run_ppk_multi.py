@@ -56,9 +56,9 @@ cfgfile_rtklib = abspath(cfgfile_rtklib)
 #           'sm-a505g', 'sm-a325f', 'sm-a217m', 'sm-a205u', 'sm-a505u', 
 #           'samsungs22ultra', 'samsunga325g', 'samsunga32', 'samsung21ultra']
 # phones in test set
-PHONES = ['pixel4', 'pixel4xl', 'pixel5', 'pixel6pro', 'pixel7pro',
+PHONES = ['pixel4', 'pixel4xl', 'pixel5', 'pixel6pro', 'pixel7pro', 'pixel5a',
           'mi8', 'xiaomimi8',
-          'sm-g988b', 'sm-s908b', 'sm-a325f', 'sm-a505u', 'sm-a205u',
+          'sm-g988b', 'sm-s908b', 'sm-a325f', 'sm-a505u', 'sm-a205u', 'sm-g955f',
           'samsunga325g', 'samsunga32']
 
 # These are only for rtklib-py, see the bases.sta file described above for RTKLIB base locations

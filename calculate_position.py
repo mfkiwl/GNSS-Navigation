@@ -37,18 +37,12 @@ def satellite_selection(df):
 
 
 def main():
-    path = '2021-07-19-20-49-us-ca-mtv-a/pixel5'
-    gnss = pd.read_csv('%s/device_gnss.csv' % path, dtype={'SignalType': str})
-    gt = pd.read_csv('%s/ground_truth.csv' % path, dtype={'SignalType': str})
-    rtk = pd.read_csv('GSDC_2023/data/locations_train_05_27.csv', dtype={'SignalType': str})
+    path = '2020-06-25-00-34-us-ca-mtv-sb-101/pixel4xl'
+    gnss = pd.read_csv('data/%s/device_gnss.csv' % path, dtype={'SignalType': str})
+    gt = pd.read_csv('data/%s/ground_truth.csv' % path, dtype={'SignalType': str})
+    rtk = pd.read_csv('GSDC_2023/data/locations_train_06_03.csv', dtype={'SignalType': str})
     rtk_train = rtk[rtk['tripId'] == path]
 
-    #For app use this
-    #current_time_seconds = time()
-
-    # Convert to milliseconds
-    #utcTimeMillis = int(current_time_seconds * 1000)
-    #gnss = gnss_all[gnss_all['utcTimeMillis'] == 1593045253440]
     # Add standard Frequency column
     frequency_median = gnss.groupby('SignalType')['CarrierFrequencyHz'].median()
     gnss = gnss.merge(frequency_median, how='left', on='SignalType', suffixes=('', 'Ref'))
@@ -129,11 +123,9 @@ def main():
                 v0 = opt.x
         #RTK
         if nepoch == gt_len :
-            llh_rtk = rtk_train[['LatitudeDegrees', 'LongitudeDegrees', 'AltitudeMeters']].to_numpy()[i]
+            llh_rtk = rtk_train[['LatitudeDegrees', 'LongitudeDegrees']].to_numpy()[i]
         else: 
-            llh_rtk = rtk_train[['LatitudeDegrees', 'LongitudeDegrees', 'AltitudeMeters']].to_numpy()[i-1]
-        #x_rtk = np.array(pm.geodetic2ecef(llh_rtk[0], llh_rtk[1], llh_rtk[2])).T
-        #x_wls[i,:] = x_rtk
+            llh_rtk = rtk_train[['LatitudeDegrees', 'LongitudeDegrees']].to_numpy()[i-1]
         # Baseline
         bl = gnss[gnss['utcTimeMillis'] == utcTimeMillis[i]]
         x_bl = bl[['WlsPositionXEcefMeters', 'WlsPositionYEcefMeters', 'WlsPositionZEcefMeters']].mean().to_numpy()
@@ -141,7 +133,8 @@ def main():
         llh_wls = np.array(pm.ecef2geodetic(x_wls[i,0], x_wls[i,1], x_wls[i,2])).T
         gt_i = gt[gt['UnixTimeMillis'] == utcTimeMillis[i]]
         llh_gt = gt_i[['LatitudeDegrees', 'LongitudeDegrees']].to_numpy()[0]
-        score_wls.append(vincenty_distance(llh_wls, llh_gt))
+        if not np.isnan(llh_wls).any():
+            score_wls.append(vincenty_distance(llh_wls, llh_gt))
         score_bl.append(vincenty_distance(llh_bl, llh_gt))
         score_rtk.append(vincenty_distance(llh_gt, llh_rtk))
 
@@ -182,8 +175,8 @@ def main():
     plt.title('Distance error')
     plt.ylabel('Distance error [m]')
     plt.plot(score_bl, label=f'Baseline, Score: {score_all_bl:.4f} m')
-    plt.plot(score_wls, label=f'Robust WLS, Score: {score_all_wls:.4f} m')
-    plt.plot(score_kf, label=f'Robust WLS + KF, Score: {score_all_kf:.4f} m')
+    plt.plot(score_wls, label=f'WLS, Score: {score_all_wls:.4f} m')
+    plt.plot(score_kf, label=f'KF, Score: {score_all_kf:.4f} m')
     plt.plot(score_rtk, label=f'RTK, Score: {score_all_rtk:.4f} m')
     plt.legend()
     plt.grid()

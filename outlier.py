@@ -21,7 +21,6 @@ def exclude_interpolate_outlier(x_wls, v_wls, cov_x, cov_v):
     idx_v_out |= np.isnan(v_enu[:, 2])
     v_wls[idx_v_out, :] = np.nan
     cov_v[idx_v_out] = v_out_sigma**2 * np.eye(3)
-    print(f'Number of velocity outliers {np.count_nonzero(idx_v_out)}')
 
     # Height check
     hmedian = np.nanmedian(x_llh[:, 2])
@@ -29,7 +28,6 @@ def exclude_interpolate_outlier(x_wls, v_wls, cov_x, cov_v):
     idx_x_out |= np.isnan(x_llh[:, 2])
     x_wls[idx_x_out, :] = np.nan
     cov_x[idx_x_out] = x_out_sigma**2 * np.eye(3)
-    print(f'Number of position outliers {np.count_nonzero(idx_x_out)}')
 
     # Interpolate NaNs at beginning and end of array
     x_df = pd.DataFrame({'x': x_wls[:, 0], 'y': x_wls[:, 1], 'z': x_wls[:, 2]})

@@ -16,9 +16,9 @@ hdrlen = 25    # 25 for RTKLIB, 1 for RTKLIB-py
 
 outThresh = 100   # max horizontal accuracy estimate
 # phones in test set
-PHONES = ['pixel4', 'pixel4xl', 'pixel5', 'pixel6pro', 'pixel7pro',
+PHONES = ['pixel4', 'pixel4xl', 'pixel5', 'pixel6pro', 'pixel7pro', 'pixel5a',
           'mi8', 'xiaomimi8',
-          'sm-g988b', 'sm-s908b', 'sm-a325f', 'sm-a505u', 'sm-a205u',
+          'sm-g988b', 'sm-s908b', 'sm-a325f', 'sm-a505u', 'sm-a205u', 'sm-g955f',
           'samsunga325g', 'samsunga32']
 # PHONES = []  # use all phones
 
