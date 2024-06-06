@@ -5,7 +5,6 @@ import pandas as pd
 def exclude_interpolate_outlier(x_wls, v_wls, cov_x, cov_v):
     # Up velocity / height threshold
     v_up_th = 2.6  # m/s  2.0 -> 2.6
-    height_th = 200.0 # m
     v_out_sigma = 3.0 # m/s
     x_out_sigma = 30.0 # m
     
@@ -22,10 +21,8 @@ def exclude_interpolate_outlier(x_wls, v_wls, cov_x, cov_v):
     v_wls[idx_v_out, :] = np.nan
     cov_v[idx_v_out] = v_out_sigma**2 * np.eye(3)
 
-    # Height check
-    hmedian = np.nanmedian(x_llh[:, 2])
-    idx_x_out = np.abs(x_llh[:, 2] - hmedian) > height_th
-    idx_x_out |= np.isnan(x_llh[:, 2])
+    # Increase covariance for NaN position
+    idx_x_out = np.isnan(x_llh[:, 2])
     x_wls[idx_x_out, :] = np.nan
     cov_x[idx_x_out] = x_out_sigma**2 * np.eye(3)
 
