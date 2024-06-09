@@ -1,0 +1,8 @@
+https://www.telesens.co/2017/07/17/calculating-position-from-raw-gps-data/
+
+https://www.spatial.nsw.gov.au/__data/assets/pdf_file/0018/232452/2023_Janssen_Coordinates1911_understanding_the_RINEX_format.pdf
+
+http://walter.bislins.ch/bloge/index.asp?page=Understanding+GPS%2FGNSS+RINEX+Files+and+Relevant+Parameters
+
+HNOI CORS: -1619893.60, 5730732.79, 2276112.25
+day 160
