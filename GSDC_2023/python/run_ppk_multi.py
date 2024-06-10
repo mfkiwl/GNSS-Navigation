@@ -57,14 +57,16 @@ cfgfile_rtklib = abspath(cfgfile_rtklib)
 #           'samsungs22ultra', 'samsunga325g', 'samsunga32', 'samsung21ultra']
 # phones in test set
 PHONES = ['pixel4', 'pixel4xl', 'pixel5', 'pixel6pro', 'pixel7pro', 'pixel5a',
-          'mi8', 'xiaomimi8',
+          'mi8', 'xiaomimi8', 'redmi9',
           'sm-g988b', 'sm-s908b', 'sm-a325f', 'sm-a505u', 'sm-a205u', 'sm-g955f',
           'samsunga325g', 'samsunga32']
 
 # These are only for rtklib-py, see the bases.sta file described above for RTKLIB base locations
 BASE_POS = {'slac' : [-2703116.3527, -4291766.8501, 3854248.1361],  # WGS84 XYZ coordinates
             'vdcy' : [-2497836.8748, -4654543.0665, 3563029.0635],
-            'p222' : [-2689640.5799, -4290437.1653, 3865051.0923]}
+            'p222' : [-2689640.5799, -4290437.1653, 3865051.0923],
+            'hnoi' : [-1619893.6000, 5730732.7900, 2276112.2500]}
+
 
 # input structure for rinex conversion
 class args:
