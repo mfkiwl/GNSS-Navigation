@@ -2,8 +2,8 @@
 CONVBIN 2.4.2                           20240608 124700 UTC PGM / RUN BY / DATE 
 log: rtk_base.rtcm3                                         COMMENT             
 format: RTCM 3, station ID: 4024                            COMMENT             
-                                                            MARKER NAME         
-                                                            MARKER NUMBER       
+HNOI                                                        MARKER NAME         
+0001                                                        MARKER NUMBER       
                                                             OBSERVER / AGENCY   
 1832414             LEICA GR50          4.20                REC # / TYPE / VERS 
                     GPPNULLANTENNA                          ANT # / TYPE        
