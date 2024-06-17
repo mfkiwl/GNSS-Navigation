@@ -25,6 +25,9 @@ def exclude_interpolate_outlier(x_wls, v_wls, cov_x, cov_v):
     idx_x_out = np.isnan(x_llh[:, 2])
     x_wls[idx_x_out, :] = np.nan
     cov_x[idx_x_out] = x_out_sigma**2 * np.eye(3)
+    nan_count = np.isnan(x_wls).sum()
+    print("Number of oulier position: ", nan_count)
+
 
     # Interpolate NaNs at beginning and end of array
     x_df = pd.DataFrame({'x': x_wls[:, 0], 'y': x_wls[:, 1], 'z': x_wls[:, 2]})
