@@ -4,7 +4,7 @@ import pandas as pd
 # Simple outlier detection and interpolation
 def exclude_interpolate_outlier(x_wls, v_wls, cov_x, cov_v):
     # Up velocity / height threshold
-    v_up_th = 2.6  # m/s  2.0 -> 2.6
+    v_up_th = 3.0  # m/s  
     v_out_sigma = 3.0 # m/s
     x_out_sigma = 30.0 # m
     
@@ -15,7 +15,6 @@ def exclude_interpolate_outlier(x_wls, v_wls, cov_x, cov_v):
     v_wls[:, 0], v_wls[:, 1], v_wls[:, 2], x_llh_mean[0], x_llh_mean[1])).T
 
     # Up velocity jump detection
-    # Cars don't jump suddenly!
     idx_v_out = np.abs(v_enu[:, 2]) > v_up_th
     idx_v_out |= np.isnan(v_enu[:, 2])
     v_wls[idx_v_out, :] = np.nan
@@ -25,7 +24,7 @@ def exclude_interpolate_outlier(x_wls, v_wls, cov_x, cov_v):
     idx_x_out = np.isnan(x_llh[:, 2])
     x_wls[idx_x_out, :] = np.nan
     cov_x[idx_x_out] = x_out_sigma**2 * np.eye(3)
-    nan_count = np.isnan(x_wls).sum()
+    nan_count = np.sum(np.any(np.isnan(x_wls), axis=1))
     print("Number of oulier position: ", nan_count)
 
 
